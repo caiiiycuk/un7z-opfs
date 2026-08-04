@@ -1,5 +1,5 @@
 {
-  "name": "7z-wasm",
+  "name": "un7z-opfs",
   "version": "2.0.0",
   "description": "7z archive extraction straight into the browser's Origin Private File System, from inside a Web Worker",
   "type": "module",
@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/caiiiycuk/7z-wasm.git"
+    "url": "git+https://github.com/caiiiycuk/un7z-opfs.git"
   },
   "keywords": [
     "7-Zip",
@@ -32,9 +32,9 @@
   "author": "Alexander Guryanov <caiiiycuk@gmail.com>",
   "license": "SEE LICENSE IN License.txt",
   "bugs": {
-    "url": "https://github.com/caiiiycuk/7z-wasm/issues"
+    "url": "https://github.com/caiiiycuk/un7z-opfs/issues"
   },
-  "homepage": "https://github.com/caiiiycuk/7z-wasm#README.md",
+  "homepage": "https://github.com/caiiiycuk/un7z-opfs#README.md",
   "engines": {
     "node": ">=18.0.0"
   },

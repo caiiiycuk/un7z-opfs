@@ -1,19 +1,23 @@
-# 7z-wasm
+# un7z-opfs
 
 Extracts `.7z` archives straight into the browser's [Origin Private File
 System](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system)
 (OPFS), from inside a dedicated Web Worker, with minimal JS-side memory use.
 
+**Why this exists:**
+
+- **Runs entirely in the browser.** No server-side unpacking, no upload/download round-trip — the archive is decompressed and written to OPFS by a WASM build of 7-Zip running in a Web Worker on the client.
+- **Minimal memory footprint.** Extracted bytes are written straight into a `FileSystemSyncAccessHandle` as 7-Zip decompresses each entry — nothing is buffered in JS/wasm memory for the extracted output. The only memory held is the input archive itself (kept in the WASM heap for the duration of extraction) and small per-chunk buffers as each write happens. A 2GB archive does not require 2GB of JS heap to extract.
+
 - **.7z archives only** (LZMA/LZMA2/XZ/BCJ/BCJ2/Delta/Copy) — no Zip/Rar/Tar/gzip. If you need those, use the full [7-Zip](https://www.7-zip.org/) build instead.
 - **Worker-only.** OPFS's synchronous file I/O (`FileSystemSyncAccessHandle`) only exists inside dedicated Web Workers — this is a platform requirement, not a choice.
 - **No COOP/COEP, no `SharedArrayBuffer`.** The WASM module uses classic Emscripten Asyncify (not pthreads, not JSPI) to bridge 7-Zip's synchronous C++ code with OPFS's asynchronous handle-acquisition API, so it needs none of the cross-origin-isolation headers pthreads-based WASM usually requires.
-- **Streams straight to disk.** Extracted bytes go directly into an OPFS `FileSystemSyncAccessHandle`; nothing is buffered in JS/wasm memory beyond the input archive itself and per-chunk write buffers.
 
 ## Quick start
 
 ```js
 // main.js (the page)
-const worker = new Worker('./node_modules/7z-wasm/worker/opfs-extractor.js', { type: 'module' });
+const worker = new Worker('./node_modules/un7z-opfs/worker/opfs-extractor.js', { type: 'module' });
 
 worker.onmessage = (ev) => {
   const msg = ev.data;
@@ -44,7 +48,7 @@ worker script instead of using `worker/opfs-extractor.js` as the whole
 worker entry point:
 
 ```js
-import { extractToOpfs } from '7z-wasm/worker/opfs-extractor.js';
+import { extractToOpfs } from 'un7z-opfs/worker/opfs-extractor.js';
 
 await extractToOpfs({
   archive: someArrayBuffer,
@@ -103,12 +107,18 @@ source /path/to/emsdk/emsdk_env.sh
 
 cmake -S . -B build
 cmake --build build
+
+# copy the freshly built output over the committed dist/ used at runtime
+cp build/dist/7zz.js build/dist/7zz.wasm dist/
 ```
 
 Output lands at `build/dist/7zz.js` + `build/dist/7zz.wasm`. The repo ships
 pre-built copies at `dist/7zz.js`/`dist/7zz.wasm` so consumers don't need
 Emscripten just to `npm install` this package — rebuild and copy them over
-manually if you change `src-glue/opfs_fs.js` or `patches/7zz-emcc.patch`.
+manually (as above) if you change `src-glue/opfs_fs.js` or
+`patches/7zz-emcc.patch`. The Testing section below (`npm test`) runs
+against whatever is currently in `dist/`, so re-run the copy step before
+testing local changes to the C++/glue side.
 
 7-Zip's source itself is fetched by `CMakeLists.txt` (via `ExternalProject_Add`)
 from the [ip7z/7zip](https://github.com/ip7z/7zip) GitHub releases (7-zip.org
@@ -145,8 +155,8 @@ be a plain unit test. It's Chromium-only for now: Firefox/WebKit support for
 
 ## Differences from upstream `7z-wasm`
 
-This is a from-scratch rewrite of [use-strict/7z-wasm](https://github.com/use-strict/7z-wasm),
-not a drop-in replacement:
+`un7z-opfs` is a from-scratch rewrite of [use-strict/7z-wasm](https://github.com/use-strict/7z-wasm)
+(itself formerly published to npm as `7z-wasm`), not a drop-in replacement:
 
 - Only `.7z` archives (upstream supports everything 7-Zip does: zip, rar, tar, gzip, bzip2, nsis, ...)
 - Browser Worker + OPFS only (upstream also supports Node.js via a CLI and NODEFS/WORKERFS)
