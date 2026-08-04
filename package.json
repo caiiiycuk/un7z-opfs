@@ -1,6 +1,6 @@
 {
   "name": "un7z-opfs",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "description": "7z archive extraction straight into the browser's Origin Private File System, from inside a Web Worker",
   "type": "module",
   "main": "dist/7zz.js",
