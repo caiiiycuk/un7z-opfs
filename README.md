@@ -15,6 +15,18 @@ System](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_
 
 ## Quick start
 
+This package ships plain, unbundled ESM files (`worker/opfs-extractor.js` +
+`dist/7zz.js`/`dist/7zz.wasm`) rather than a single bundled artifact, so the
+browser can load the worker directly via a URL — no bundler-specific worker
+loader required. The `./node_modules/...` path below only resolves if
+whatever serves your page also serves `node_modules` over HTTP at that
+path, which dev servers like Vite/`webpack-dev-server` do by default, but a
+typical production static host (serving only `dist/`/`public/`) does not.
+For production, either copy `worker/opfs-extractor.js` and `dist/7zz.js`/
+`dist/7zz.wasm` into your served assets directory as a build step, or point
+your bundler's native worker syntax (e.g. `new Worker(new URL('un7z-opfs/worker/opfs-extractor.js', import.meta.url), { type: 'module' })`)
+at the package so it gets bundled and copied automatically.
+
 ```js
 // main.js (the page)
 const worker = new Worker('./node_modules/un7z-opfs/worker/opfs-extractor.js', { type: 'module' });
@@ -152,6 +164,27 @@ The suite (`test/extract.spec.js`) drives a real Chromium instance via
 Playwright — OPFS and Web Workers aren't available in Node, so this can't
 be a plain unit test. It's Chromium-only for now: Firefox/WebKit support for
 `FileSystemSyncAccessHandle` is newer and less consistently available.
+
+## Trying a local build in another project
+
+To sanity-check a local build (or a change to `src-glue`/`worker`) inside a
+real consuming project, before publishing to npm:
+
+```sh
+# in this repo, after `cmake --build build` + copying dist/ (see Building above)
+npm pack
+# produces un7z-opfs-<version>.tgz in this directory
+
+# in your consuming project
+npm install /path/to/un7z-opfs/un7z-opfs-<version>.tgz
+```
+
+`npm link` works too (`npm link` here, then `npm link un7z-opfs` in the
+consuming project), but `npm pack`/`npm install <tarball>` is closer to what
+consumers actually get from the registry — it only includes the files
+listed in `package.json`'s `files` field, so it also catches accidental
+"works locally, missing from the published package" bugs that a symlink via
+`npm link` would hide.
 
 ## Differences from upstream `7z-wasm`
 
