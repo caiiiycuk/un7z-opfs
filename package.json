@@ -1,46 +1,44 @@
 {
   "name": "7z-wasm",
-  "version": "1.2.0",
-  "description": "7-Zip for JavaScript environments, compiled to WASM",
-  "bin": "bin/cli",
-  "main": "7zz.umd.js",
-  "module": "7zz.es6.js",
+  "version": "2.0.0",
+  "description": "7z archive extraction straight into the browser's Origin Private File System, from inside a Web Worker",
+  "type": "module",
+  "main": "dist/7zz.js",
   "types": "index.d.ts",
+  "files": [
+    "dist",
+    "src-glue",
+    "worker",
+    "patches",
+    "index.d.ts",
+    "License.txt"
+  ],
   "scripts": {
-    "test": "mocha test/*.spec.js"
+    "test": "playwright test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/use-strict/7z-wasm.git"
+    "url": "git+https://github.com/caiiiycuk/7z-wasm.git"
   },
   "keywords": [
     "7-Zip",
     "7zip",
     "archive",
     "7z",
-    "7zz",
     "wasm",
-    "tar",
-    "zip",
-    "rar",
-    "gz",
-    "bz",
-    "bz2",
-    "nsis"
+    "opfs",
+    "worker"
   ],
-  "author": "Alexandru Ciuca",
+  "author": "Alexander Guryanov <caiiiycuk@gmail.com>",
   "license": "SEE LICENSE IN License.txt",
   "bugs": {
-    "url": "https://github.com/use-strict/7z-wasm/issues"
+    "url": "https://github.com/caiiiycuk/7z-wasm/issues"
   },
-  "homepage": "https://github.com/use-strict/7z-wasm#README.md",
+  "homepage": "https://github.com/caiiiycuk/7z-wasm#README.md",
   "engines": {
-    "node": ">=8.0.0"
-  },
-  "dependencies": {
-    "readline-sync": "^1.4.10"
+    "node": ">=18.0.0"
   },
   "devDependencies": {
-    "mocha": "^10.2.0"
+    "@playwright/test": "^1.47.0"
   }
 }

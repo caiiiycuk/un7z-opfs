@@ -9,27 +9,49 @@ on:
       - master
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Disabled for now as we commit the build artifacts directly to git
-    # - name: Build with Docker
-    #   run: ./build
-    #   working-directory: ${{ github.workspace }}
-
     - name: Install Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '16'
+        node-version: '20'
 
     - name: Install dependencies
       run: npm install
-      working-directory: ${{ github.workspace }}
 
-    - name: Run tests
+    - name: Install Playwright Chromium
+      run: npx playwright install --with-deps chromium
+
+    # Runs against the committed dist/7zz.js + dist/7zz.wasm, not a fresh
+    # emsdk build -- keeps CI fast. See the (manual/optional) build-verify
+    # job below for checking the CMake build itself still works.
+    - name: Run Playwright tests
       run: npm test
-      working-directory: ${{ github.workspace }}
+
+  build-verify:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Emscripten SDK
+      uses: mymindstorm/setup-emsdk@v14
+      with:
+        version: '6.0.5'
+
+    - name: Configure and build via CMake
+      run: |
+        cmake -S . -B build
+        cmake --build build
+
+    - name: Verify build output exists
+      run: |
+        test -f build/dist/7zz.js
+        test -f build/dist/7zz.wasm
