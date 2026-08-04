@@ -15,6 +15,10 @@ System](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_
 
 ## Quick start
 
+```sh
+npm install un7z-opfs
+```
+
 This package ships plain, unbundled ESM files (`worker/opfs-extractor.js` +
 `dist/7zz.js`/`dist/7zz.wasm`) rather than a single bundled artifact, so the
 browser can load the worker directly via a URL — no bundler-specific worker
@@ -185,6 +189,56 @@ consumers actually get from the registry — it only includes the files
 listed in `package.json`'s `files` field, so it also catches accidental
 "works locally, missing from the published package" bugs that a symlink via
 `npm link` would hide.
+
+## Publishing to npm
+
+Prerequisites: an npm account with publish rights to `un7z-opfs` (`npm login`
+if you aren't already authenticated — `npm whoami` confirms).
+
+```sh
+# 1. make sure dist/ reflects the current source (see Building above)
+cmake -S . -B build && cmake --build build
+cp build/dist/7zz.js build/dist/7zz.wasm dist/
+
+# 2. run the test suite against that build
+npx playwright install --with-deps chromium
+npm test
+
+# 3. bump the version (updates package.json + package-lock.json, commits,
+#    and tags -- run from a clean working tree)
+npm version patch   # or: minor / major
+
+# 4. sanity-check exactly what would be published
+npm pack --dry-run
+
+# 5. publish (the package is unscoped, so no --access flag is needed;
+#    add --access public if you rename it to a scoped name like @you/un7z-opfs)
+npm publish
+
+# 6. push the version bump commit + tag created by `npm version`
+git push && git push --tags
+```
+
+### What actually gets published
+
+npm includes only the paths listed in `package.json`'s `"files"` array
+(plus `package.json`, `README.md`, and the license file, which npm always
+includes regardless of `"files"`). Verified with `npm pack --dry-run`
+against the current tree:
+
+| path | purpose for a consumer |
+|---|---|
+| `dist/7zz.js`, `dist/7zz.wasm` | the compiled 7-Zip WASM module — what `main` points at and what `worker/opfs-extractor.js` imports |
+| `worker/opfs-extractor.js` | the ready-to-use worker entry point / `extractToOpfs()` export — what the Quick start examples above actually load |
+| `index.d.ts` | TypeScript types for `extractToOpfs()` and the message protocol |
+| `src-glue/opfs_fs.js`, `patches/7zz-emcc.patch` | build-time inputs only (the Emscripten FS backend source and the 7-Zip patch) — not imported at runtime by consumers, only needed if you're rebuilding the WASM module yourself per the Building section |
+| `License.txt` | required by the LGPL + unRAR terms this project inherits from 7-Zip |
+
+`patches/` and `src-glue/` add a little dead weight to the published
+tarball for a pure consumer (they're only read by `CMakeLists.txt`), but are
+kept in `files` so `npm pack`/`npm install <tarball>`-based local testing
+(see above) exercises the exact same file set that a from-source rebuild
+depends on.
 
 ## Differences from upstream `7z-wasm`
 
