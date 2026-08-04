@@ -47,15 +47,17 @@ function parseSltTotalBytes(lines) {
  * @param {Uint8Array|ArrayBuffer} opts.archive - raw .7z archive bytes
  * @param {string} opts.destPath - destination folder path, relative to the
  *   OPFS root (e.g. "downloads/my-archive"); must not start with "/" or
- *   contain ".." segments
+ *   contain ".." segments. Pass "" or "." to extract directly into the OPFS
+ *   root.
  * @param {(info: {processedBytes: number, totalBytes: number, currentFile: string|null}) => void} [opts.onProgress]
  * @returns {Promise<void>}
  */
 export async function extractToOpfs({ archive, destPath, onProgress }) {
-  if (typeof destPath !== 'string' || destPath.length === 0 || destPath.startsWith('/') ||
+  if (typeof destPath !== 'string' || destPath.startsWith('/') ||
       destPath.split('/').includes('..')) {
-    throw new Error('destPath must be a non-empty path relative to the OPFS root, without ".." segments');
+    throw new Error('destPath must be a path relative to the OPFS root ("" or "." for the root), without ".." segments');
   }
+  const isRoot = destPath === '' || destPath === '.';
 
   let phase = 'list';
   let currentFile = null;
@@ -102,7 +104,7 @@ export async function extractToOpfs({ archive, destPath, onProgress }) {
   };
 
   phase = 'extract';
-  const destFsPath = `${MOUNT}/${destPath}`;
+  const destFsPath = isRoot ? MOUNT : `${MOUNT}/${destPath}`;
   const extractExit = await sevenZip.callMain(['x', ARCHIVE_PATH, `-o${destFsPath}`, '-y', '-bb1', '-bso1']);
   if (extractExit !== 0) {
     throw new Error(`7z extraction failed with exit code ${extractExit}`);
